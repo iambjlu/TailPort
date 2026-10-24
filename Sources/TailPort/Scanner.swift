@@ -23,10 +23,13 @@ struct ScanResult: Sendable {
 /// 透過 tailscale CLI 取得 tailnet 裝置,再對每台上線的裝置逐一探測指定的埠。
 enum Scanner {
     private static let cliCandidates = [
-        "/Applications/Tailscale.app/Contents/MacOS/Tailscale",
-        "/opt/homebrew/bin/tailscale",
         "/usr/local/bin/tailscale",
+        "/opt/homebrew/bin/tailscale",
     ]
+
+    /// 直接執行 Tailscale.app 內的執行檔需要特定環境變數才會當成指令列工具(否則會嘗試啟動 GUI),
+    /// 所以優先用官方安裝的 /usr/local/bin/tailscale 包裝腳本;最後才退回 App 內的執行檔並自行補上環境變數。
+    private static let appBinary = "/Applications/Tailscale.app/Contents/MacOS/Tailscale"
 
     private struct Peer {
         var name: String
@@ -64,13 +67,14 @@ enum Scanner {
     // MARK: Tailscale
 
     private static func loadPeers() async throws -> [Peer] {
-        guard let cli = cliCandidates.first(where: { FileManager.default.isExecutableFile(atPath: $0) }) else {
+        guard let cli = (cliCandidates + [appBinary]).first(where: { FileManager.default.isExecutableFile(atPath: $0) }) else {
             throw ScanError("找不到 tailscale 指令列工具,請確認已安裝 Tailscale")
         }
         let data: Data = try await Task.detached {
             let p = Process()
             p.executableURL = URL(fileURLWithPath: cli)
             p.arguments = ["status", "--json"]
+            if cli == appBinary { p.environment = ProcessInfo.processInfo.environment.merging(["TAILSCALE_BE_CLI": "1"]) { $1 } }
             let out = Pipe()
             p.standardOutput = out
             p.standardError = FileHandle.nullDevice

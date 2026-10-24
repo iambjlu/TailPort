@@ -22,5 +22,5 @@ macOS 選單列 App(SwiftUI)。內建一個小型 HTTP 伺服器,提供網頁入
 
 ## 注意
 
-- Tailscale CLI 路徑依序找 `/Applications/Tailscale.app/Contents/MacOS/Tailscale`、`/opt/homebrew/bin/tailscale`、`/usr/local/bin/tailscale`。
+- Tailscale CLI 路徑依序找 `/usr/local/bin/tailscale`(官方包裝腳本,會設好環境)、`/opt/homebrew/bin/tailscale`,最後才是 App 內的執行檔(直接執行它而沒有 shell 環境時會嘗試啟動 GUI 而失敗)。
 - 目標裝置的 ACL 若不允許本機連入,該埠會被視為未開啟。
