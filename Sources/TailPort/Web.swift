@@ -4,7 +4,7 @@ let webPage = #"""
 <html lang="zh-Hant">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#2E2F31">
 <title>TailPort</title>
 <style>
@@ -15,7 +15,11 @@ let webPage = #"""
   --green: #4caf50; --red: #ef9a9a; --red-bg: rgba(229,57,53,0.16);
 }
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-html { background: var(--bg); touch-action: manipulation; }
+html { background: var(--bg); touch-action: manipulation; }   /* 禁止雙擊放大(仍可正常捲動) */
+/* 禁止選取文字與長按選單;輸入框例外,否則無法輸入 */
+body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+input { -webkit-user-select: text; user-select: text; }
+a, img { -webkit-user-drag: none; }
 body {
   min-height: 100vh; color: var(--text); font-size: 15px; line-height: 1.45;
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro', 'PingFang TC', 'Inter', 'Roboto', 'Microsoft JhengHei UI', sans-serif;
@@ -208,6 +212,8 @@ async function openSettings() {
   document.body.append(ov);
 }
 
+// iOS Safari 忽略 user-scalable=no,另外擋掉雙指縮放手勢
+document.addEventListener('gesturestart', e => e.preventDefault());
 load();
 setInterval(() => { if (!document.hidden && !$('overlay')) load(); }, 30000);
 document.addEventListener('visibilitychange', () => { if (!document.hidden && !$('overlay')) load(); });

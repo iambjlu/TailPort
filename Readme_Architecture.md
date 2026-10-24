@@ -17,7 +17,7 @@ macOS 選單列 App(SwiftUI)。內建一個小型 HTTP 伺服器,提供網頁入
 - `Sources/TailPort/Scanner.swift`:呼叫 tailscale CLI(`status --json`)取得本機與上線的 peer,
   每台裝置的每個埠以 NWConnection 做 TCP 連線探測(逾時 1.5 秒,全部並行)。使用 Tailscale 的 IPv4;本機這台改用 127.0.0.1 探測(連自己的 Tailscale IP 會經過 utun,可能被防火牆擋下而逾時),網頁連結仍是 Tailscale IP。
   裝置名稱取 `HostName`(濾掉 U+F8FF),沒有則用 DNSName 第一段。
-- `Sources/TailPort/Web.swift`:單頁網頁(卡片可展開、設定對話框編輯埠與名稱、30 秒自動重新整理)。
+- `Sources/TailPort/Web.swift`:單頁網頁(卡片可展開、設定對話框編輯埠與名稱、30 秒自動重新整理;禁止選取文字與雙擊/雙指縮放,輸入框除外)。
 - `scripts/make_app.sh`:編譯並包成 `build/TailPort.app`(ad-hoc 簽章);`scripts/make_icon.swift` 繪製 App 圖示。
 
 ## 注意
