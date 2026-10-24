@@ -57,6 +57,10 @@ details.card > summary::-webkit-details-marker { display: none; }
 .name { flex: 1; min-width: 0; font-size: 16px; font-weight: 700; overflow-wrap: anywhere; }
 .chip { flex: none; font-size: 12px; color: var(--muted); background: var(--surface-hi); padding: 2px 10px; border-radius: 10px; }
 .chip.count { color: var(--accent); background: rgba(255,215,0,0.12); }
+.copy { width: 32px; height: 32px; border-radius: 8px; flex: none; display: flex; align-items: center; justify-content: center;
+  cursor: pointer; padding: 0; color: var(--accent); background: var(--surface-hi); border: 1px solid var(--border); }
+.copy svg { width: 16px; height: 16px; fill: currentColor; }
+.copy.done { color: var(--green); }
 .caret { width: 28px; height: 28px; border-radius: 8px; flex: none; display: flex; align-items: center; justify-content: center;
   color: var(--accent); background: var(--surface-hi); }
 .caret svg { width: 20px; height: 20px; fill: currentColor; transition: transform .2s ease; }
@@ -117,6 +121,21 @@ const CARET = '<svg viewBox="0 0 24 24"><path d="M7.41 8.59 12 13.17l4.59-4.58L1
 const openCards = new Set();
 let loading = false;
 
+const COPY_SVG = '<svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>';
+const CHECK_SVG = '<svg viewBox="0 0 24 24"><path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>';
+
+// 區網 http 不是 secure context,navigator.clipboard 不可用,所以用 textarea + execCommand 當後備
+async function copyText(text) {
+  try { if (navigator.clipboard && window.isSecureContext) { await navigator.clipboard.writeText(text); return true; } } catch (e) {}
+  const t = el('textarea', { value: text });
+  t.style.cssText = 'position:fixed;top:0;left:0;opacity:0';
+  document.body.append(t); t.focus(); t.select();
+  let ok = false;
+  try { ok = document.execCommand('copy'); } catch (e) {}
+  t.remove();
+  return ok;
+}
+
 function el(tag, props, ...kids) {
   const e = Object.assign(document.createElement(tag), props || {});
   e.append(...kids);
@@ -146,6 +165,20 @@ async function load() {
   }
 }
 
+function copyBtn(text) {
+  const b = el('button', { type: 'button', className: 'copy', title: '拷貝 Tailscale IP ' + text, innerHTML: COPY_SVG });
+  b.setAttribute('aria-label', '拷貝 Tailscale IP');
+  b.onclick = async e => {
+    e.preventDefault(); e.stopPropagation();   // 不要觸發卡片展開
+    const ok = await copyText(text);
+    b.classList.toggle('done', ok);
+    b.innerHTML = ok ? CHECK_SVG : COPY_SVG;
+    b.title = ok ? '已拷貝 ' + text : '拷貝失敗,請手動複製 ' + text;
+    setTimeout(() => { b.classList.remove('done'); b.innerHTML = COPY_SVG; }, 1500);
+  };
+  return b;
+}
+
 function showError(text) {
   $('err').hidden = !text;
   $('err').textContent = text || '';
@@ -157,19 +190,22 @@ function render(j) {
   list.replaceChildren();
   for (const d of j.devices) {
     const key = d.ip;
+    // 這台 Mac 自己的服務,連結使用瀏覽器網址列的主機,例如用 192.168.x.x 連進來就用該位址開;其他裝置一律用 Tailscale IP
+    const host = d.self ? location.hostname : d.ip;
     const card = el('details', { className: 'card', open: openCards.has(key) });
     card.ontoggle = () => { card.open ? openCards.add(key) : openCards.delete(key); };
     const sum = el('summary', {},
       el('span', { className: 'dot' }),
       el('span', { className: 'name', textContent: d.name }),
       el('span', { className: 'chip count', textContent: d.open.length + ' 個服務' }),
+      copyBtn(d.ip),
       el('span', { className: 'caret', innerHTML: CARET }));
     const links = el('div', { className: 'links' });
     for (const o of d.open) {
-      links.append(el('a', Object.assign({ className: 'link', href: o.url }, o.scheme.startsWith('http') ? { target: '_blank', rel: 'noopener' } : {}),
+      links.append(el('a', Object.assign({ className: 'link', href: o.scheme + '://' + host + ':' + o.port }, o.scheme.startsWith('http') ? { target: '_blank', rel: 'noopener' } : {}),
         el('b', { textContent: o.name }), el('span', { textContent: (o.scheme.startsWith('http') ? '' : o.scheme + ' ') + ':' + o.port })));
     }
-    card.append(sum, el('div', { className: 'ip', textContent: d.ip + (d.os ? ' · ' + d.os : '') + (d.self ? ' · 這台 Mac' : '') }), links);
+    card.append(sum, el('div', { className: 'ip', textContent: d.ip + (d.os ? ' · ' + d.os : '') + (d.self ? ' · 這台 Mac(連結使用 ' + host + ')' : '') }), links);
     list.append(card);
   }
   const empty = $('empty');
