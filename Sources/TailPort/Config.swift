@@ -3,6 +3,10 @@ import Foundation
 struct PortEntry: Codable, Equatable {
     var port: Int
     var name: String
+    /// 連結使用的協定(http、https、vnc、ssh、smb);舊設定檔沒有這個欄位時視為 http
+    var scheme: String?
+
+    static let schemes = ["http", "https", "vnc", "ssh", "smb"]
 }
 
 struct Config: Codable {
@@ -16,6 +20,7 @@ struct Config: Codable {
         PortEntry(port: 2283, name: "Immich"),
         PortEntry(port: 8181, name: "File Browser"),
         PortEntry(port: 80, name: "Web"),
+        PortEntry(port: 5900, name: "VNC", scheme: "vnc"),
     ]
 
     static var url: URL {

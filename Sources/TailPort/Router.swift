@@ -21,7 +21,9 @@ struct Router: Sendable {
                 }
                 guard seen.insert(port).inserted else { return .error(400, "埠 \(port) 重複了") }
                 let name = (item["name"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-                entries.append(PortEntry(port: port, name: name.isEmpty ? "Port \(port)" : String(name.prefix(40))))
+                let scheme = (item["scheme"] as? String ?? "http").lowercased()
+                guard PortEntry.schemes.contains(scheme) else { return .error(400, "不支援的協定 \(scheme)") }
+                entries.append(PortEntry(port: port, name: name.isEmpty ? "Port \(port)" : String(name.prefix(40)), scheme: scheme))
             }
             ConfigStore.shared.update { $0.ports = entries }
             return .json(["ports": portsJSON(entries)])
@@ -33,7 +35,7 @@ struct Router: Sendable {
                 "devices": result.devices.filter { !$0.open.isEmpty }.map { d in
                     [
                         "name": d.name, "ip": d.ip, "os": d.os, "self": d.isSelf,
-                        "open": d.open.map { ["port": $0.port, "name": $0.name, "url": "http://\(d.ip):\($0.port)"] },
+                        "open": d.open.map { ["port": $0.port, "name": $0.name, "scheme": $0.scheme, "url": "\($0.scheme)://\(d.ip):\($0.port)"] },
                     ] as [String: Any]
                 },
             ]
@@ -46,6 +48,6 @@ struct Router: Sendable {
     }
 
     private func portsJSON(_ p: [PortEntry]) -> [[String: Any]] {
-        p.map { ["port": $0.port, "name": $0.name] }
+        p.map { ["port": $0.port, "name": $0.name, "scheme": $0.scheme ?? "http"] }
     }
 }

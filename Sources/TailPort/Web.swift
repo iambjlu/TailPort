@@ -88,6 +88,9 @@ a.link span { font-size: 12px; color: var(--accent); }
 .prow input:focus { border-color: var(--accent); }
 .prow input.p { width: 84px; flex: none; }
 .prow input.n { flex: 1; }
+.prow select { height: 40px; padding: 0 4px; border-radius: 10px; color: var(--text); font-size: 14px; flex: none;
+  background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.16); outline: none; }
+.prow select option { background: var(--surface); }
 .foot { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
 .foot .btn { height: 45px; font-size: 16px; font-weight: 700; border-radius: 10px; }
 </style>
@@ -163,8 +166,8 @@ function render(j) {
       el('span', { className: 'caret', innerHTML: CARET }));
     const links = el('div', { className: 'links' });
     for (const o of d.open) {
-      links.append(el('a', { className: 'link', href: o.url, target: '_blank', rel: 'noopener' },
-        el('b', { textContent: o.name }), el('span', { textContent: ':' + o.port })));
+      links.append(el('a', Object.assign({ className: 'link', href: o.url }, o.scheme.startsWith('http') ? { target: '_blank', rel: 'noopener' } : {}),
+        el('b', { textContent: o.name }), el('span', { textContent: (o.scheme.startsWith('http') ? '' : o.scheme + ' ') + ':' + o.port })));
     }
     card.append(sum, el('div', { className: 'ip', textContent: d.ip + (d.os ? ' · ' + d.os : '') + (d.self ? ' · 這台 Mac' : '') }), links);
     list.append(card);
@@ -179,22 +182,24 @@ async function openSettings() {
   let ports;
   try { ports = (await api('/api/ports')).ports; } catch (e) { showError(e.message); return; }
   const rows = el('div');
-  const addRow = (p, n) => {
+  const SCHEMES = ['http', 'https', 'vnc', 'ssh', 'smb'];
+  const addRow = (p, n, sc = 'http') => {
     const row = el('div', { className: 'prow' },
       el('input', { className: 'p', type: 'number', inputMode: 'numeric', min: 1, max: 65535, placeholder: '埠', value: p }),
       el('input', { className: 'n', type: 'text', placeholder: '名稱', value: n }),
+      el('select', { className: 's', title: '連結協定' }, ...SCHEMES.map(x => el('option', { value: x, textContent: x, selected: x === sc }))),
       el('button', { className: 'btn danger', type: 'button', textContent: '✕', onclick: () => row.remove() }));
     rows.append(row);
     return row;
   };
-  ports.forEach(p => addRow(p.port, p.name));
+  ports.forEach(p => addRow(p.port, p.name, p.scheme));
   const msg = el('div', { className: 'err', hidden: true });
   const close = () => ov.remove();
   const save = async () => {
-    const out = [...rows.children].map(r => ({ port: r.querySelector('.p').value.trim(), name: r.querySelector('.n').value }))
+    const out = [...rows.children].map(r => ({ port: r.querySelector('.p').value.trim(), name: r.querySelector('.n').value, scheme: r.querySelector('.s').value }))
       .filter(r => r.port !== '');
     try {
-      await api('/api/ports', { ports: out.map(r => ({ port: Number(r.port), name: r.name })) });
+      await api('/api/ports', { ports: out.map(r => ({ port: Number(r.port), name: r.name, scheme: r.scheme })) });
       close();
       load();
     } catch (e) { msg.hidden = false; msg.textContent = e.message; }
