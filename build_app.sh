@@ -1,10 +1,13 @@
 #!/bin/bash
 # 把 SwiftPM 編出來的執行檔包成 TailPort.app。
 # 「登入時自動啟動」(SMAppService)需要正式的 .app 才能使用。
-# 用法:scripts/make_app.sh [輸出資料夾,預設為 build]
+# 用法:./build_app.sh [輸出資料夾,預設為 build]
+#       ./build_app.sh --run   編譯後結束執行中的 TailPort 並重新開啟
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
+RUN=0
+if [ "${1:-}" = "--run" ]; then RUN=1; shift; fi
 OUT="${1:-build}"
 APP="$OUT/TailPort.app"
 
@@ -38,3 +41,9 @@ PLIST
 
 codesign --force --sign - "$APP"
 echo "已建立 $APP"
+
+if [ "$RUN" = 1 ]; then
+    pkill -x TailPort 2>/dev/null || true
+    sleep 1
+    open "$APP"
+fi

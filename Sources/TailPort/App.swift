@@ -63,7 +63,7 @@ final class AppState: ObservableObject {
 
     func setLaunchAtLogin(_ on: Bool) {
         guard Bundle.main.bundleURL.pathExtension == "app" else {
-            notice = "開機自動啟動需要把程式包成 .app(執行 scripts/make_app.sh)"
+            notice = "開機自動啟動需要把程式包成 .app(執行 build_app.sh)"
             launchAtLogin = false
             return
         }
