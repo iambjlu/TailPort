@@ -101,8 +101,8 @@ enum Scanner {
 
     private static func peer(_ d: [String: Any], isSelf: Bool) -> Peer? {
         guard let ips = d["TailscaleIPs"] as? [String], let ip = ips.first(where: { !$0.contains(":") }) else { return nil }
-        // 裝置名稱可能帶有 Apple 標誌的私有字元(U+F8FF),其他系統會顯示成方框,先濾掉並整理空白
-        let host = (d["HostName"] as? String ?? "").replacingOccurrences(of: "\u{F8FF}", with: " ")
+        // 裝置名稱可能帶有 Apple 標誌的私有字元(U+F8FF),保留原樣(Apple 系統的字型會畫成蘋果標誌);只整理多餘空白
+        let host = (d["HostName"] as? String ?? "")
             .split(whereSeparator: \.isWhitespace).joined(separator: " ")
         let dnsLabel = (d["DNSName"] as? String ?? "").split(separator: ".").first.map(String.init) ?? ""
         let name = (host.isEmpty || host == "localhost") ? (dnsLabel.isEmpty ? ip : dnsLabel) : host
