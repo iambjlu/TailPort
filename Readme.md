@@ -19,7 +19,7 @@ Mac 端是常駐選單列的 SwiftUI App,內建網頁伺服器;用任何裝置�
 
 ## 需求
 
-- macOS 15 或更新
+- macOS 15 或更新,Apple Silicon(arm64;`build_app.sh` 固定編成 arm64,不含 Intel)
 - 已安裝並登入 Tailscale(App 透過 `tailscale status --json` 取得裝置清單;找不到 CLI 時請在 Tailscale 設定裡安裝)
 - Swift 6 工具鏈(Xcode)
 

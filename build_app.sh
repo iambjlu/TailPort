@@ -11,8 +11,9 @@ if [ "${1:-}" = "--run" ]; then RUN=1; shift; fi
 OUT="${1:-build}"
 APP="$OUT/TailPort.app"
 
-swift build -c release
-BIN="$(swift build -c release --show-bin-path)/TailPort"
+# 固定編成 Apple Silicon(arm64),不依賴編譯當下的機器;最低系統版本由 Package.swift 的 platforms 決定(macOS 15)
+swift build -c release --arch arm64
+BIN="$(swift build -c release --arch arm64 --show-bin-path)/TailPort"
 
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
