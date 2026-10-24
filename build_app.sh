@@ -4,7 +4,7 @@
 # 用法:./build_app.sh [輸出資料夾,預設為 build]
 #       ./build_app.sh --run   編譯後結束執行中的 TailPort 並重新開啟
 set -euo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")"
 
 RUN=0
 if [ "${1:-}" = "--run" ]; then RUN=1; shift; fi
