@@ -125,6 +125,17 @@ const $ = id => document.getElementById(id);
 const CARET = '<svg viewBox="0 0 24 24"><path d="M7.41 8.59 12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg>';
 const openCards = new Set();
 let loading = false;
+let lastScan = null;   // 最近一次掃描結果,篩選變更時直接重新繪製,不用重掃
+let portList = [];     // 目前設定的埠
+// 篩選狀態只存在這個瀏覽器(localStorage 不可用時就視為不篩選)
+const loadFilter = () => { try { return new Set(JSON.parse(localStorage.getItem('tailport.filter') || '[]')); } catch (e) { return new Set(); } };
+const saveFilter = set => { try { localStorage.setItem('tailport.filter', JSON.stringify([...set])); } catch (e) {} };
+// 全不勾或全勾 = 顯示全部;只勾部分 = 只顯示勾選的埠
+function activeFilter() {
+  const sel = loadFilter();
+  const on = portList.filter(p => sel.has(p.port)).map(p => p.port);
+  return on.length === 0 || on.length === portList.length ? null : new Set(on);
+}
 
 const COPY_SVG = '<svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>';
 const CHECK_SVG = '<svg viewBox="0 0 24 24"><path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>';
@@ -160,7 +171,9 @@ async function load() {
   loading = true;
   $('refresh').classList.add('spin');
   try {
-    const j = await api('/api/scan');
+    const [j, p] = await Promise.all([api('/api/scan'), api('/api/ports')]);
+    portList = p.ports;
+    lastScan = j;
     render(j);
   } catch (e) {
     showError('掃描失敗:' + e.message);
@@ -189,7 +202,11 @@ function showError(text) {
   $('err').textContent = text || '';
 }
 
-function render(j) {
+function render(scan) {
+  const f = activeFilter();
+  const j = Object.assign({}, scan, { devices: scan.devices
+    .map(d => Object.assign({}, d, { open: f ? d.open.filter(o => f.has(o.port)) : d.open }))
+    .filter(d => d.open.length > 0) });
   showError(j.error);
   const list = $('list');
   list.replaceChildren();
@@ -215,7 +232,7 @@ function render(j) {
   }
   const empty = $('empty');
   empty.hidden = j.devices.length > 0 || !!j.error;
-  empty.textContent = j.scanned ? '沒有裝置開著指定的埠' : '';
+  empty.textContent = j.scanned ? (f ? '沒有裝置開著勾選的埠' : '沒有裝置開著指定的埠') : '';
   $('note').textContent = j.error ? '' : '已掃描 ' + j.scanned + ' 台上線裝置 · 點卡片展開,點服務名稱開新分頁';
 }
 
@@ -235,14 +252,16 @@ async function openSettings() {
     rows.append(row);
     return row;
   };
-  ports.forEach(p => addRow(p.port, p.name, p.scheme, p.filter));
+  const sel = loadFilter();
+  ports.forEach(p => addRow(p.port, p.name, p.scheme, sel.has(p.port)));
   const msg = el('div', { className: 'err', hidden: true });
   const close = () => ov.remove();
   const save = async () => {
     const out = [...rows.children].map(r => ({ port: r.querySelector('.p').value.trim(), name: r.querySelector('.n').value, scheme: r.querySelector('.s').value, filter: r.querySelector('.f').checked }))
       .filter(r => r.port !== '');
     try {
-      await api('/api/ports', { ports: out.map(r => ({ port: Number(r.port), name: r.name, scheme: r.scheme, filter: r.filter })) });
+      await api('/api/ports', { ports: out.map(r => ({ port: Number(r.port), name: r.name, scheme: r.scheme })) });
+      saveFilter(new Set(out.filter(r => r.filter).map(r => Number(r.port))));
       close();
       load();
     } catch (e) { msg.hidden = false; msg.textContent = e.message; }

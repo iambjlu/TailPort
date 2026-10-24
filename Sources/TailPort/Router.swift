@@ -23,18 +23,13 @@ struct Router: Sendable {
                 let name = (item["name"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
                 let scheme = (item["scheme"] as? String ?? "http").lowercased()
                 guard PortEntry.schemes.contains(scheme) else { return .error(400, "不支援的協定 \(scheme)") }
-                entries.append(PortEntry(port: port, name: name.isEmpty ? "Port \(port)" : String(name.prefix(40)), scheme: scheme,
-                                        filter: (item["filter"] as? Bool) == true))
+                entries.append(PortEntry(port: port, name: name.isEmpty ? "Port \(port)" : String(name.prefix(40)), scheme: scheme))
             }
             ConfigStore.shared.update { $0.ports = entries }
             return .json(["ports": portsJSON(entries)])
 
         case ("GET", "/api/scan"):
-            let all = ConfigStore.shared.config.ports
-            let checked = all.filter { $0.filter == true }
-            // 只勾部分時只掃描勾選的埠;全不勾或全勾則掃描全部
-            let active = (checked.isEmpty || checked.count == all.count) ? all : checked
-            let result = await Scanner.scan(active)
+            let result = await Scanner.scan(ConfigStore.shared.config.ports)
             var out: [String: Any] = [
                 "scanned": result.scanned,
                 "devices": result.devices.filter { !$0.open.isEmpty }.map { d in
@@ -53,6 +48,6 @@ struct Router: Sendable {
     }
 
     private func portsJSON(_ p: [PortEntry]) -> [[String: Any]] {
-        p.map { ["port": $0.port, "name": $0.name, "scheme": $0.scheme ?? "http", "filter": $0.filter == true] }
+        p.map { ["port": $0.port, "name": $0.name, "scheme": $0.scheme ?? "http"] }
     }
 }
