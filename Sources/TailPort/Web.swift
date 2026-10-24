@@ -92,8 +92,11 @@ a.link span { font-size: 12px; color: var(--accent); }
 .prow input:focus { border-color: var(--accent); }
 .prow input.p { width: 84px; flex: none; }
 .prow input.n { flex: 1; }
-.prow select { height: 40px; padding: 0 4px; border-radius: 10px; color: var(--text); font-size: 14px; flex: none;
-  background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.16); outline: none; }
+.prow select { height: 40px; width: 88px; padding: 0 26px 0 12px; border-radius: 10px; color: var(--text); font-size: 16px; flex: none;
+  -webkit-appearance: none; appearance: none; cursor: pointer; outline: none;
+  background: rgba(0,0,0,0.2) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23BFC3C5'%3E%3Cpath d='M7.41 8.59 12 13.17l4.59-4.58L18 10l-6 6-6-6z'/%3E%3C/svg%3E") no-repeat right 4px center / 20px;
+  border: 1px solid rgba(255,255,255,0.16); }
+.prow select:focus { border-color: var(--accent); }
 .prow select option { background: var(--surface); }
 .foot { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
 .foot .btn { height: 45px; font-size: 16px; font-weight: 700; border-radius: 10px; }
