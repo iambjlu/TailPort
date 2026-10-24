@@ -47,9 +47,10 @@ enum Scanner {
         await withTaskGroup(of: ScannedDevice.self) { group in
             for peer in peers {
                 group.addTask {
+                    // 本機改走 loopback 探測:連自己的 Tailscale IP 會經過 utun,部分程式(例如被防火牆擋下的)會逾時
                     let open = await withTaskGroup(of: OpenPort?.self) { g -> [OpenPort] in
                         for e in entries {
-                            g.addTask { await probe(host: peer.ip, port: e.port) ? OpenPort(port: e.port, name: e.name) : nil }
+                            g.addTask { await probe(host: peer.isSelf ? "127.0.0.1" : peer.ip, port: e.port) ? OpenPort(port: e.port, name: e.name) : nil }
                         }
                         var r: [OpenPort] = []
                         for await p in g { if let p { r.append(p) } }
