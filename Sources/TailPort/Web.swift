@@ -86,12 +86,14 @@ a.link span { font-size: 12px; color: var(--accent); }
   border: 1px solid var(--border); border-radius: 16px; padding: 22px 18px 18px; }
 .dialog h2 { font-size: 20px; margin-bottom: 4px; }
 .dialog p { font-size: 13px; color: var(--muted); margin-bottom: 14px; }
-.prow { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
+.prow { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; align-items: center; }
+.prow input.f { width: 24px; height: 24px; flex: none; accent-color: var(--accent); cursor: pointer; padding: 0; }
 .prow input { height: 40px; padding: 0 10px; border-radius: 10px; color: var(--text); font-size: 16px;
   background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.16); outline: none; min-width: 0; }
 .prow input:focus { border-color: var(--accent); }
 .prow input.p { width: 84px; flex: none; }
-.prow input.n { flex: 1; }
+.prow input.n { flex: 1 0 100%; order: 5; }   /* 名稱獨佔第二行,手機寬度才放得下 */
+.prow .grow { flex: 1; }
 .prow select { height: 40px; width: 88px; padding: 0 26px 0 12px; border-radius: 10px; color: var(--text); font-size: 16px; flex: none;
   -webkit-appearance: none; appearance: none; cursor: pointer; outline: none;
   background: rgba(0,0,0,0.2) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23BFC3C5'%3E%3Cpath d='M7.41 8.59 12 13.17l4.59-4.58L18 10l-6 6-6-6z'/%3E%3C/svg%3E") no-repeat right 4px center / 20px;
@@ -222,23 +224,25 @@ async function openSettings() {
   try { ports = (await api('/api/ports')).ports; } catch (e) { showError(e.message); return; }
   const rows = el('div');
   const SCHEMES = ['http', 'https', 'vnc', 'ssh', 'smb'];
-  const addRow = (p, n, sc = 'http') => {
+  const addRow = (p, n, sc = 'http', f = false) => {
     const row = el('div', { className: 'prow' },
+      el('input', { className: 'f', type: 'checkbox', checked: f, title: '只顯示這個埠' }),
       el('input', { className: 'p', type: 'number', inputMode: 'numeric', min: 1, max: 65535, placeholder: '埠', value: p }),
       el('input', { className: 'n', type: 'text', placeholder: '名稱', value: n }),
       el('select', { className: 's', title: '連結協定' }, ...SCHEMES.map(x => el('option', { value: x, textContent: x, selected: x === sc }))),
       el('button', { className: 'btn danger', type: 'button', textContent: '✕', onclick: () => row.remove() }));
+    row.querySelector('.p').after(el('span', { className: 'grow' }));
     rows.append(row);
     return row;
   };
-  ports.forEach(p => addRow(p.port, p.name, p.scheme));
+  ports.forEach(p => addRow(p.port, p.name, p.scheme, p.filter));
   const msg = el('div', { className: 'err', hidden: true });
   const close = () => ov.remove();
   const save = async () => {
-    const out = [...rows.children].map(r => ({ port: r.querySelector('.p').value.trim(), name: r.querySelector('.n').value, scheme: r.querySelector('.s').value }))
+    const out = [...rows.children].map(r => ({ port: r.querySelector('.p').value.trim(), name: r.querySelector('.n').value, scheme: r.querySelector('.s').value, filter: r.querySelector('.f').checked }))
       .filter(r => r.port !== '');
     try {
-      await api('/api/ports', { ports: out.map(r => ({ port: Number(r.port), name: r.name, scheme: r.scheme })) });
+      await api('/api/ports', { ports: out.map(r => ({ port: Number(r.port), name: r.name, scheme: r.scheme, filter: r.filter })) });
       close();
       load();
     } catch (e) { msg.hidden = false; msg.textContent = e.message; }
@@ -246,7 +250,7 @@ async function openSettings() {
   const ov = el('div', { id: 'overlay', onclick: e => { if (e.target === ov) close(); } },
     el('div', { className: 'dialog' },
       el('h2', { textContent: '要尋找的埠' }),
-      el('p', { textContent: '裝置只要開著其中任一個埠,就會出現卡片。' }),
+      el('p', { textContent: '裝置只要開著其中任一個埠,就會出現卡片。左邊的核取方塊用來篩選:全不勾(預設)或全勾顯示全部,只勾部分時就只顯示勾選的埠。' }),
       rows,
       el('button', { className: 'btn', type: 'button', textContent: '＋ 新增一個埠', onclick: () => addRow('', '').querySelector('.p').focus() }),
       msg,

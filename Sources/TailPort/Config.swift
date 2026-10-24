@@ -5,6 +5,8 @@ struct PortEntry: Codable, Equatable {
     var name: String
     /// 連結使用的協定(http、https、vnc、ssh、smb);舊設定檔沒有這個欄位時視為 http
     var scheme: String?
+    /// 勾選「只顯示」:全不勾或全勾顯示全部,只勾部分時只掃描並顯示勾選的埠
+    var filter: Bool?
 
     static let schemes = ["http", "https", "vnc", "ssh", "smb"]
 }
