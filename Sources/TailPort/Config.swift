@@ -20,7 +20,8 @@ struct Config: Codable {
         PortEntry(port: 2283, name: "Immich"),
         PortEntry(port: 8181, name: "File Browser"),
         PortEntry(port: 80, name: "Web"),
-        PortEntry(port: 5900, name: "VNC", scheme: "vnc"),
+        PortEntry(port: 5900, name: "VNC/ARD", scheme: "vnc"),
+        PortEntry(port: 22, name: "SSH", scheme: "ssh"),
     ]
 
     static var url: URL {

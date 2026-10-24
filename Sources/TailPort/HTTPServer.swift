@@ -45,7 +45,11 @@ final class HTTPServer: @unchecked Sendable {
         listener.start(queue: queue)
     }
 
-    func stop() { listener.cancel() }
+    /// 先拿掉狀態回呼再取消,否則舊監聽器稍後送出的「已取消」會蓋掉新監聽器的狀態
+    func stop() {
+        listener.stateUpdateHandler = nil
+        listener.cancel()
+    }
 
     private func accept(_ conn: NWConnection) {
         guard Self.isAllowed(conn.endpoint) else { conn.cancel(); return }
